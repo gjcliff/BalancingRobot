@@ -46,9 +46,9 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 float roll_setpoint = 0.0;
 float pitch_setpoint = 0.0;
-float p = 23;
-float i = 10;
-float d = 0;
+float p = 11;
+float i = 0;
+float d = 10;
 int check;
 
 //receiver globals
