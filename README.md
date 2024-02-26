@@ -2,6 +2,8 @@
 This is a simple robot that can balance itself on two wheels using a PID
 controller. The robot has the following components:
 
+**No guides on balancing robots were used to make this balancing robot!**
+
 # Components
 * [Arduino Pro Mini (ATmega328P, 8Mhz, 3.3V)](https://www.amazon.com/HiLetgo-ATmega328P-Oscillator-Compatible-ATmega128/dp/B07RS911JD/ref=sr_1_3?crid=2N14IKG33WL1A&dib=eyJ2IjoiMSJ9.3cETzf54YDlehGHQvoVDiVIiaq1bia3T7lTLmCs7mIcSlOa0pWSL9nXmIEUP8gyyo6spETrA5HDImmJux9nAyGKNxosgedaMHdG7-1u3t_bkqQf1-7y6-f_s4SHTNdhGFsOmJBmApuRD0T7G_YNa-p-C_cqFzspjWikgrqU6B1qU3Fgut7wr3E-5evWR2WtKvV8gRjU8zD4TPHOGfYbysRZ8oLB_Al4iifvydBplh98.WnHgBaJiBwQoLxha3gJAJ-c6l6i3cqrWoPRuc3sGZS8&dib_tag=se&keywords=arduino+pro+mini+3.3v&qid=1708925395&sprefix=arduino+pro+mini+3.3v%2Caps%2C97&sr=8-3)
 * [MPU6050 Gyroscope & Accelerometer](https://www.amazon.com/HiLetgo-MPU-6050-Accelerometer-Gyroscope-Converter/dp/B00LP25V1A/ref=sr_1_3?dib=eyJ2IjoiMSJ9.nQ-HfKOFyZoszrV3cxLK6tLh71T4Dx8jkRlVGhGj_VzjnSkvuXzmbbgUXBfehuXg3dih42B-7O1e6pJ_wmbfq76REDHKtJKewAQCtpUypxHodrL-S_GwIp18RxsDtGfIcqfywNxuynlRYx6n1pP_PK4IOHcAe4MN5HbExyxhNhFgCpgvBUFmUPf0Cv66A55IlmCTEX_MMONaZ2Gx4kgC6iC0wl3dfgpNBaHqXvDAwOw.nf-8SXZoMJ1_ZYF1pTAoX2Mb4sRbFjZRSehs2KHyZfI&dib_tag=se&keywords=mpu6050&qid=1708925361&sr=8-3)
