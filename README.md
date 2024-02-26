@@ -22,6 +22,7 @@ and out. The code is designed specifically for the MPU6050 though.
 
 # CAD
 Link to CAD files on OnShape: [Link](https://cad.onshape.com/documents/7b9b6fda841dd45178915373/w/32f2686a3b4c95e17893e537/e/a7000d906e6f19a225cac0ee?renderMode=0&uiState=65dc20009a3c5b36286aaa91)
+
 I've also exported the files from OnShape as .sldwrks ans .stl files for
 convenience, you can find them in the 'CAD' directory. These are all the same
 files.
@@ -51,4 +52,4 @@ simple so I hope the pictures is enough.
 PID gains.
 
 # Helpful Resources
-* https://softwareengineering.stackexchange.com/questions/186124/programming-pid-loops-in-c
+https://softwareengineering.stackexchange.com/questions/186124/programming-pid-loops-in-c
