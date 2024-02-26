@@ -3,23 +3,12 @@
 //Credit to Joop Brokking for my MPU6050 code. www.brokking.net/
 
 //initializing libraries
-//#include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "Wire.h"
 #include <SPI.h>
 #include "RF24.h"
-#include "ArduPID.h"
+#include "I2Cdev.h"
 
-// I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
-// for both classes must be in the include path of your project
-// #include "I2Cdev.h"
-
-// Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
-// is used in I2Cdev.h
-
-//PID globals
-ArduPID pid_roll;
-ArduPID pid_pitch;
 MPU6050 mpu;
 
 #define OUTPUT_READABLE_YAWPITCHROLL
@@ -44,12 +33,14 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
-float roll_setpoint = 0.0;
 float pitch_setpoint = 0.0;
-float p = 11;
-float i = 0;
-float d = 10;
-int check;
+int prev_error = 0;
+int int_error = 0;
+int Kp = 20;
+int Ki = 0;
+int Kd = 0;
+int loop_timer = 0;
+int dt = 1000;
 
 //receiver globals
 RF24 radio(A0, 10); // radio(CE_pin,CSN_pin)
@@ -126,11 +117,11 @@ void gyroSetup() {
         Fastwire::setup(400, true);
     #endif
 
-    // initialize serial communication
-    // (115200 chosen because it is required for Teapot Demo output, but it's
-    // really up to you depending on your project)
-    Serial.begin(115200);
-    while (!Serial); // wait for Leonardo enumeration, others continue immediately
+    // NOTE: 8MHz or slower host processors, like the Teensy @ 3.3V or Arduino
+    // Pro Mini running at 3.3V, cannot handle this baud rate reliably due to
+    // the baud timing being too misaligned with processor ticks. You must use
+    // 38400 or slower in these cases, or use some kind of external separate
+    // crystal solution for the UART timer.
 
     // initialize device
     Serial.println(F("Initializing I2C devices..."));
@@ -140,12 +131,6 @@ void gyroSetup() {
     // verify connection
     Serial.println(F("Testing device connections..."));
     Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-
-    // wait for ready
-    // Serial.println(F("\nSend any character to begin DMP programming and demo: "));
-    // while (Serial.available() && Serial.read()); // empty buffer
-    // while (!Serial.available());                 // wait for data
-    // while (Serial.available() && Serial.read()); // empty buffer again
 
     // load and configure the DMP
     Serial.println(F("Initializing DMP..."));
@@ -227,33 +212,27 @@ void transmitString(String s) {
   }
 }
 
+
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(38400);
     //radioInit();
     motorDriverInit();
-    //Serial.println("Waiting for transmission from controller to begin MPU6050 intitialization");  //wait to receive a tranmission from the controller before initializing the gyroscope accelerometer
     gyroSetup();
     gyroRun();
 
-    //   pid_p.begin(&angle_pitch_output, &thrust_mod, &pitch_set, p, i, d);
-    //   pid_r.begin(&angle_roll_output, &thrust_mod, &roll_set, p, i, d);
-    //   pid_az.begin(&acc_z, &thrust_mod, &acc_z_set, p, i, d);
-
-    pid_roll.begin(&ypr[1], &motor_go, &roll_setpoint, p, i, d);
-    pid_roll.setOutputLimits(-255, 255);
-    pid_roll.setBias(0);
-    pid_roll.setWindUpLimits(-5, 5);
-    pid_roll.setSampleTime(10);
-    pid_roll.start();
-    }
+    // pid_roll.setOutputLimits(0, 255);
+    // pid_roll.begin(&ypr[1], &motor_go, &roll_setpoint, p, i, d);
+    // pid_roll.setBias(150);
+    // pid_roll.setWindUpLimits(-5, 5);
+    // pid_roll.setSampleTime(10);
+    // pid_roll.start();
+}
 
 void loop() {
     // ================================================================
     // ===               Gyroscope/Accelerometer Loop               ===
     // ================================================================
     gyroRun();
-
-    //Serial.print("pitch: "); Serial.print(ypr[1]); Serial.print("\troll: "); Serial.print(ypr[2]);
 
     //   if (radio.available()) {
     //     int bytes = radio.getPayloadSize();
@@ -268,52 +247,36 @@ void loop() {
 
     //this if loop switches the direction of the motor depending on if the
     //roll angle is positive or negative. The 0 degree angle is pointing straight up here.
-    pid_roll.compute();
-
     if(ypr[1] < 0){
       motorHigh[0] = motor3;
       motorHigh[1] = motor1;
       motorLow[0] = motor4;
       motorLow[1] = motor2;
     } else {
-      motor_go = -motor_go;
       motorHigh[0] = motor4;
       motorHigh[1] = motor2;
       motorLow[0] = motor3;
       motorLow[1] = motor1;
     }
 
+    // PID control
+    int error = abs(ypr[1] - pitch_setpoint);
+    motor_go = Kp * error + (Ki * int_error)*dt + Kd * (error - prev_error)/dt;
+
+    int_error += error;
+    prev_error = error;
+
+    if (motor_go > 255) {
+      motor_go = 255;
+    } else if (motor_go < 0) {
+      motor_go = 0;
+    }
+
     for (int i = 0; i < 2; i ++){
-      // if (check == 1){
-      //   motor_go += 40;
-      // }
       analogWrite(motorHigh[i],motor_go);
       digitalWrite(motorLow[i],LOW);
     }
-    // motor_go[1] += motor_go_mod;
-
-    // pid_pitch.compute();
-    // motor_go[0] += motor_go_mod;
-    // motor_go[1] -= motor_go_mod;
-
-    //Serial.println("motor_go 0: " + motor_go[0] + "motor_go 1: " + motor_go[1] + "motor_go_mod 0: " + motor_go_mod[0] + "motor_go_mod 1: " + motor_go_mod[1]);
-    // for (int i = 0; i < 2; i ++){
-    //analogWrite(motor1, motor_go);
     Serial.print("\tmotor go: ");Serial.println(motor_go);
-      // Serial.print("\tmotor go mod: ");Serial.println(motor_go_mod);
-    // }
-    //Serial.print("thrust mod: "); Serial.println(thrust_mod);
-    // for (int i = 0; i < 2; i++) {
-    //     analogWrite(motor[i], thrust[i]);
-    //     //Serial.print("thrust "); Serial.print(i); Serial.print(": "); Serial.println(thrust[0]);
-    // }
-    // int i = 0;
-    // boolean yes = false;
-    // while (micros() - loop_timer < 4000){    //Wait until the loop_timer reaches 4000us (250Hz) before starting the next loop
-    //     if(i > 0) {
-    //         Serial.println("i is greater than 0");
-    //     }
-    // }
-    // loop_timer = micros();  //Reset the loop timer
-    delay(10);
+    while (micros() - loop_timer < dt){;}    //Wait until the loop_timer reaches 4000us (250Hz) before starting the next loop
+    loop_timer = micros();  //Reset the loop timer
 }
