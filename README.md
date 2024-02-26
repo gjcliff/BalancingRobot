@@ -1,6 +1,6 @@
 # Introduction
 This is a simple robot that can balance itself on two wheels using a PID
-controller. The robot has the following components:
+controller.
 
 **No guides on balancing robots were used to make this balancing robot!**
 
