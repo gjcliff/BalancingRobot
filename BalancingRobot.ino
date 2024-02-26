@@ -4,12 +4,9 @@
 
 //initializing libraries
 #include "MPU6050_6Axis_MotionApps20.h"
-#include "Wire.h"
+#include <Wire.h>
 #include <SPI.h>
-#include "RF24.h"
-#include "I2Cdev.h"
-
-MPU6050 mpu;
+#include <I2Cdev.h>
 
 #define OUTPUT_READABLE_YAWPITCHROLL
 #define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
@@ -17,6 +14,7 @@ MPU6050 mpu;
 bool blinkState = false;
 
 // MPU control/status vars
+MPU6050 mpu;
 bool dmpReady = false;  // set true if DMP init was successful
 uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
 uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
@@ -33,6 +31,7 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
+// pid variables
 float pitch_setpoint = 0.0;
 int prev_error = 0;
 int int_error = 0;
@@ -63,33 +62,6 @@ float motor_go = 0;
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 void dmpDataReady() {
   mpuInterrupt = true;
-}
-
-// join I2C bus (I2Cdev library doesn't do this automatically
-
-// ================================================================
-// ===                  Radio Initialization                 ===
-// ================================================================
-void radioInit() {
-  while (!radio.begin()) {
-    Serial.println(F("radio hardware is not responding!!"));
-  }
-  Serial.println(F("radio initialized"));
-  radio.enableAckPayload(); //Allow ack(nowledgement) payloads. This will let us send data back to transmitter without manually changing the radio modes on both Arduinos.
-  radio.enableDynamicPayloads(); //Need for sending ack payloads on pipes other than 0 and 1. This enables it on all pipes.
-  radio.setRetries(5, 15);
-  radio.openWritingPipe(address[1]);     // always uses pipe 0
-  radio.openReadingPipe(1, address[0]); // using pipe 1
-
-  // Set the PA Level low to try preventing power supply related problems
-  // because these examples are likely run with nodes in close proximity to
-  // each other.
-  radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
-
-  // save on transmission time by setting the radio to only transmit the number of bytes we need to transmit a float
-
-  // additional setup specific to the node's role
-  radio.startListening(); // put radio in RX mode
 }
 
 // ================================================================
@@ -204,28 +176,11 @@ void gyroRun(){
     }
 }
 
-void transmitString(String s) {
-  uint8_t len = s.length() + 1;
-  char data[len];
-  s.toCharArray(data, len);
-  if (radio.write(&data, sizeof(data))) {
-  }
-}
-
-
 void setup() {
     Serial.begin(38400);
-    //radioInit();
     motorDriverInit();
     gyroSetup();
     gyroRun();
-
-    // pid_roll.setOutputLimits(0, 255);
-    // pid_roll.begin(&ypr[1], &motor_go, &roll_setpoint, p, i, d);
-    // pid_roll.setBias(150);
-    // pid_roll.setWindUpLimits(-5, 5);
-    // pid_roll.setSampleTime(10);
-    // pid_roll.start();
 }
 
 void loop() {
@@ -234,19 +189,7 @@ void loop() {
     // ================================================================
     gyroRun();
 
-    //   if (radio.available()) {
-    //     int bytes = radio.getPayloadSize();
-    //     radio.read(&data, bytes);
-    //     radio.writeAckPayload(0, &ack, bytes);
-    //   }
-
-    // ================================================================
-    // ===                        Flight Loop                       ===
-    // ================================================================
-    //Leveling Logic
-
-    //this if loop switches the direction of the motor depending on if the
-    //roll angle is positive or negative. The 0 degree angle is pointing straight up here.
+    // switch the direction of the motor depending on the sign of the pitch
     if(ypr[1] < 0){
       motorHigh[0] = motor3;
       motorHigh[1] = motor1;
@@ -277,6 +220,6 @@ void loop() {
       digitalWrite(motorLow[i],LOW);
     }
     Serial.print("\tmotor go: ");Serial.println(motor_go);
-    while (micros() - loop_timer < dt){;}    //Wait until the loop_timer reaches 4000us (250Hz) before starting the next loop
+    while (micros() - loop_timer < dt){;}    //Wait until the loop_timer reaches 1000us (1000Hz) before starting the next loop
     loop_timer = micros();  //Reset the loop timer
 }
